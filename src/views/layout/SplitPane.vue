@@ -1,6 +1,7 @@
 <script setup lang="ts">
+// 简单的布局组件 没什么好说的
 import { ref, reactive, computed, inject } from 'vue'
-import { Store } from './store'
+import { Store } from '../../store'
 
 const props = defineProps<{ layout?: string }>()
 const isVertical = computed(() => props.layout === 'vertical')

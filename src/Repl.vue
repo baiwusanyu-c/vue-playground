@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import SplitPane from './SplitPane.vue'
+import SplitPane from './views/layout/SplitPane.vue'
 import Editor from './editor/Editor.vue'
 import Output from './output/Output.vue'
 import { Store, ReplStore, SFCOptions } from './store'
@@ -16,6 +16,10 @@ export interface Props {
   ssr?: boolean
 }
 
+// 默认 props设置
+// 这个 props 其实相当于 vue-repl api 了
+// 用于第三方构建自己的 playground
+
 const props = withDefaults(defineProps<Props>(), {
   store: () => new ReplStore(),
   autoResize: true,
@@ -25,9 +29,12 @@ const props = withDefaults(defineProps<Props>(), {
   ssr: false
 })
 
+// 配置参数配置
 props.store.options = props.sfcOptions
+// 初始化 store
 props.store.init()
 
+// 提供全局方法与变量
 provide('store', props.store)
 provide('autoresize', props.autoResize)
 provide('import-map', toRef(props, 'showImportMap'))
@@ -37,10 +44,12 @@ provide('clear-console', toRef(props, 'clearConsole'))
 <template>
   <div class="vue-repl">
     <SplitPane :layout="layout">
+     <!--  编辑器    -->
       <template #left>
         <Editor />
       </template>
       <template #right>
+      <!--   输出与预览     -->
         <Output
           :showCompileOutput="props.showCompileOutput"
           :ssr="!!props.ssr"

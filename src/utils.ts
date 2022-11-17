@@ -1,5 +1,5 @@
 import { zlibSync, unzlibSync, strToU8, strFromU8 } from 'fflate'
-
+// 防抖 没啥好说的
 export function debounce(fn: Function, n = 100) {
   let handle: any
   return (...args: any[]) => {
@@ -10,6 +10,7 @@ export function debounce(fn: Function, n = 100) {
   }
 }
 
+// 转码，用于将 虚拟文件的代码等信息转化为 base46，并挂在 url 哈希上
 export function utoa(data: string): string {
   const buffer = strToU8(data)
   const zipped = zlibSync(buffer, { level: 9 })
@@ -17,6 +18,7 @@ export function utoa(data: string): string {
   return btoa(binary)
 }
 
+// 解码 用于将挂在 url 哈希上转化为虚拟文件信息、代码等。实现持久化
 export function atou(base64: string): string {
   const binary = atob(base64)
 

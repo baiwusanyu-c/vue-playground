@@ -1,4 +1,5 @@
 <script setup lang="ts">
+// 报错提示组件 没啥好说的
 import { ref, watch } from 'vue'
 import { CompilerError } from 'vue/compiler-sfc'
 

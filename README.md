@@ -59,3 +59,14 @@ store.setVueVersion('3.2.8')
   <Repl :store="store" :showCompileOutput="true" />
 </template>
 ```
+codemirror ❀
+editor
+output
+message  ❀
+repl ❀
+splitPane ❀
+store
+transform
+utils ❀
+vue-dev-proxy ❀
+vue-server-renderer-dev-proxy ❀
