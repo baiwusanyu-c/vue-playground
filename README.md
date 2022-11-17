@@ -60,7 +60,7 @@ store.setVueVersion('3.2.8')
 </template>
 ```
 codemirror ❀
-editor
+editor ❀
 output
 message  ❀
 repl ❀
