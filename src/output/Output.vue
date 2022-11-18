@@ -6,17 +6,20 @@ import { inject, ref, computed } from 'vue'
 import type { OutputModes } from './types'
 
 const props = defineProps<{
-  showCompileOutput?: boolean
-  ssr: boolean
+  showCompileOutput?: boolean // 是否显示编译输出结果
+  ssr: boolean // 是否为 ssr 预览
 }>()
 
 const store = inject('store') as Store
+// 设置预览 tab
 const modes = computed(() =>
   props.showCompileOutput
     ? (['preview', 'js', 'css', 'ssr'] as const)
     : (['preview'] as const)
 )
 
+// 设置 CodeMirror 的 mode，即指定可显示的语言
+// css，js（ssr 和 csr）
 const mode = ref<OutputModes>(
   (modes.value as readonly string[]).includes(store.initialOutputMode)
     ? store.initialOutputMode as OutputModes
@@ -25,6 +28,7 @@ const mode = ref<OutputModes>(
 </script>
 
 <template>
+  <!-- 输出按钮（预览、css、js、ssr） -->
   <div class="tab-buttons">
     <button
       v-for="m of modes"
@@ -36,7 +40,9 @@ const mode = ref<OutputModes>(
   </div>
 
   <div class="output-container">
+    <!--  预览  -->
     <Preview :show="mode === 'preview'" :ssr="ssr" />
+    <!-- 编译结果代码展示，从store的当前激活虚拟文件中拿到编译后的代码 -->
     <CodeMirror
       v-if="mode !== 'preview'"
       readonly

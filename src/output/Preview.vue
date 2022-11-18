@@ -28,9 +28,11 @@ let proxy: PreviewProxy
 let stopUpdateWatcher: WatchStopHandle | undefined
 
 // create sandbox on mount
+// 创建 iframe 沙盒元素
 onMounted(createSandbox)
 
 // reset sandbox when import map changes
+// 监听 import-map.json 代码，变化时能够重置 iframe 沙盒元素
 watch(
   () => store.state.files['import-map.json'].code,
   (raw) => {
@@ -49,8 +51,10 @@ watch(
 )
 
 // reset sandbox when version changes
+// 监听版本，变化时能够重置 iframe 沙盒元素
 watch(() => store.state.resetFlip, createSandbox)
 
+// 卸载时重置和销毁
 onUnmounted(() => {
   proxy.destroy()
   stopUpdateWatcher && stopUpdateWatcher()
@@ -58,6 +62,7 @@ onUnmounted(() => {
 
 function createSandbox() {
   if (sandbox) {
+    // 重置和销毁
     // clear prev sandbox
     proxy.destroy()
     stopUpdateWatcher && stopUpdateWatcher()
@@ -82,20 +87,27 @@ function createSandbox() {
   if (!importMap.imports) {
     importMap.imports = {}
   }
+  // 设置默认运行时
   if (!importMap.imports.vue) {
     importMap.imports.vue = store.state.vueRuntimeURL
   }
+  // 替换依赖图
   const sandboxSrc = srcdoc.replace(
     /<!--IMPORT_MAP-->/,
     JSON.stringify(importMap)
   )
+  // 添加沙盒到容器下（srcdoc是srcdoc.html的字符串）
   sandbox.srcdoc = sandboxSrc
   container.value.appendChild(sandbox)
 
+  // new 一个沙盒与上层应用的通信代理（基于post message）
   proxy = new PreviewProxy(sandbox, {
+    // 沙盒钩子 -- fetch 进度
     on_fetch_progress: (progress: any) => {
       // pending_imports = progress;
     },
+
+    // 沙盒钩子 -- 错误捕获
     on_error: (event: any) => {
       const msg =
         event.value instanceof Error ? event.value.message : event.value
@@ -110,6 +122,8 @@ function createSandbox() {
         runtimeError.value = event.value
       }
     },
+
+    // 沙盒钩子 -- 注入错误
     on_unhandled_rejection: (event: any) => {
       let error = event.value
       if (typeof error === 'string') {
@@ -117,6 +131,8 @@ function createSandbox() {
       }
       runtimeError.value = 'Uncaught (in promise): ' + error.message
     },
+
+    // 沙盒钩子 -- 警告和错误输出
     on_console: (log: any) => {
       if (log.duplicate) {
         return
@@ -136,19 +152,28 @@ function createSandbox() {
         }
       }
     },
+
+    // TODO：作用暂时位置
     on_console_group: (action: any) => {
       // group_logs(action.label, false);
     },
+
+    // TODO：作用暂时位置
     on_console_group_end: () => {
       // ungroup_logs();
     },
+
+    // TODO：作用暂时位置
     on_console_group_collapsed: (action: any) => {
       // group_logs(action.label, true);
     }
   })
 
+  // 沙盒载入时
   sandbox.addEventListener('load', () => {
+    // 触发 link 钩子，确保沙盒内 a 标签能够点击跳转(不设置 target属性都可以开tab)
     proxy.handle_links()
+    // 开启预览监听
     stopUpdateWatcher = watchEffect(updatePreview)
   })
 }
@@ -161,6 +186,7 @@ async function updatePreview() {
   runtimeWarning.value = null
 
   let isSSR = props.ssr
+  // 检查 vue 版本
   if (store.vueVersion) {
     const [_, minor, patch] = store.vueVersion.split('.')
     if (parseInt(minor, 10) < 2 || parseInt(patch, 10) < 27) {
@@ -176,11 +202,14 @@ async function updatePreview() {
     const mainFile = store.state.mainFile
 
     // if SSR, generate the SSR bundle and eval it to render the HTML
+    // ssr 预览编译渲染
     if (isSSR && mainFile.endsWith('.vue')) {
+      // 将源码编译，得到编译后结果
       const ssrModules = compileModulesForPreview(store, true)
       console.log(
         `[@vue/repl] successfully compiled ${ssrModules.length} modules for SSR.`
       )
+      // 注入vue的ssr代码
       await proxy.eval([
         `const __modules__ = {};`,
         ...ssrModules,
@@ -201,6 +230,7 @@ async function updatePreview() {
     }
 
     // compile code to simulated module system
+    // 将源码编译，得到编译后结果
     const modules = compileModulesForPreview(store)
     console.log(
       `[@vue/repl] successfully compiled ${modules.length} module${
@@ -208,6 +238,7 @@ async function updatePreview() {
       }.`
     )
 
+    // csr 的 vue 注入
     const codeToEval = [
       `window.__modules__ = {}\nwindow.__css__ = ''\n` +
         `if (window.__app__) window.__app__.unmount()\n` +

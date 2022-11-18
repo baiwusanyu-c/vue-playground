@@ -61,11 +61,11 @@ store.setVueVersion('3.2.8')
 ```
 codemirror ❀
 editor ❀
-output
+output ❀
 message  ❀
 repl ❀
 splitPane ❀
-store
+store ❀
 transform
 utils ❀
 vue-dev-proxy ❀

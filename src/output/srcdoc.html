@@ -26,14 +26,14 @@
 				window.__dynamic_import__ = key => {
 					return Promise.resolve(window.__modules__[key])
 				}
-
+                // 处理上层应用发送过来的h指令消息
 				async function handle_message(ev) {
 					let { action, cmd_id } = ev.data;
 					const send_message = (payload) => parent.postMessage( { ...payload }, ev.origin);
 					const send_reply = (payload) => send_message({ ...payload, cmd_id });
 					const send_ok = () => send_reply({ action: 'cmd_ok' });
 					const send_error = (message, stack) => send_reply({ action: 'cmd_error', message, stack });
-
+                    // 处理脚本注入
 					if (action === 'eval') {
 						try {
 							if (scriptEls.length) {
@@ -42,10 +42,10 @@
 								})
 								scriptEls.length = 0
 							}
-
+                            // 从消息参数中取出脚本，封装成数组
 							let { script: scripts } = ev.data.args
 							if (typeof scripts === 'string') scripts = [scripts]
-
+                            // 遍历脚本数组，创建 script标签，实现脚本注入
 							for (const script of scripts) {
 								const scriptEl = document.createElement('script')
 								scriptEl.setAttribute('type', 'module')
@@ -65,7 +65,7 @@
 							send_error(e.message, e.stack);
 						}
 					}
-
+                    // 点击捕获时间
 					if (action === 'catch_clicks') {
 						try {
 							const top_origin = ev.origin;
@@ -75,6 +75,7 @@
 								if (event.defaultPrevented) return;
 
 								// ensure target is a link
+                                // 只有点击的是 a 标签才处理
 								let el = event.target;
 								while (el && el.nodeName !== 'A') el = el.parentNode;
 								if (!el || el.nodeName !== 'A') return;
@@ -82,7 +83,7 @@
 								if (el.hasAttribute('download') || el.getAttribute('rel') === 'external' || el.target) return;
 
 								event.preventDefault();
-
+                                // 创建 url 跳转，这里主要是保证沙盒 iframe 中，a标签的正常使用
 								if (el.href.startsWith(top_origin)) {
 									const url = new URL(el.href);
 									if (url.hash[0] === '#') {
@@ -99,9 +100,9 @@
 						}
 					}
 				}
-
+                // 建立 message 监听，处理上层应用发送给过来的指令消息
 				window.addEventListener('message', handle_message, false);
-
+                // 捕获页面内 js 异常并发送到上层应用
 				window.onerror = function (msg, url, lineNo, columnNo, error) {
 					if (msg.includes('module specifier “vue”')) {
 						// firefox only error, ignore
@@ -113,7 +114,7 @@
 						parent.postMessage({ action: 'error', value: msg }, '*');
 					}
 				}
-
+                // 捕获页面内 promise 被 reject 的异常并发送到上层应用
 				window.addEventListener("unhandledrejection", event => {
 					if (event.reason.message.includes('Cross-origin')) {
 						event.preventDefault()
@@ -127,7 +128,7 @@
 				});
 
 				let previous = { level: null, args: null };
-
+                // 改写了 console 的常用日志方法，使其能够自动发送消息到上层应用
 				['clear', 'log', 'info', 'dir', 'warn', 'error', 'table'].forEach((level) => {
 					const original = console[level];
 					console[level] = (...args) => {
@@ -161,6 +162,9 @@
 					}
 				});
 
+                // console.group 能够吧其后面的 log 进行分组,分组信息自动展开
+                // console.groupEnd 能够结束 console.group 的分组
+                // console.groupCollapsed 能够吧其后面的 log 进行分组,分组信息自动折叠
 				[
 					{ method: 'group', action: 'console_group' },
 					{ method: 'groupEnd', action: 'console_group_end' },
@@ -174,6 +178,7 @@
 					};
 				});
 
+                /********************************* console 的各种改写，能够自动发送消息到上层应用 ********************************/
 				const timers = new Map();
 				const original_time = console.time;
 				const original_timelog = console.timeLog;

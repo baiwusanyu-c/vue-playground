@@ -2,7 +2,7 @@
 // MIT License https://github.com/sveltejs/svelte-repl/blob/master/LICENSE
 
 let uid = 1
-
+// 与 iframe 沙盒通信的代理对象
 export class PreviewProxy {
   iframe: HTMLIFrameElement
   handlers: Record<string, Function>
@@ -13,19 +13,24 @@ export class PreviewProxy {
   handle_event: (e: any) => void
 
   constructor(iframe: HTMLIFrameElement, handlers: Record<string, Function>) {
+    // 沙盒 iframe
     this.iframe = iframe
+    // handler 沙盒钩子对象
     this.handlers = handlers
 
     this.pending_cmds = new Map()
 
     this.handle_event = (e) => this.handle_repl_message(e)
+    // 建立 message 监听，接收 iframe 发送过来的消息
     window.addEventListener('message', this.handle_event, false)
   }
 
   destroy() {
+    // 销毁 message 监听
     window.removeEventListener('message', this.handle_event)
   }
 
+  // 向沙盒 iframe 发送消息
   iframe_command(action: string, args: any) {
     return new Promise((resolve, reject) => {
       const cmd_id = uid++
@@ -36,6 +41,8 @@ export class PreviewProxy {
     })
   }
 
+  // 处理沙盒发送过来的钩子通信
+  // 这里通常做发送给沙盒，沙盒处理指令后回复消息
   handle_command_message(cmd_data: any) {
     let action = cmd_data.action
     let id = cmd_data.cmd_id
@@ -60,6 +67,8 @@ export class PreviewProxy {
     }
   }
 
+  // 处理沙盒发送过来的钩子通信，触发相关 handler 钩子
+  // 这里是 iframe 向上层发送消息
   handle_repl_message(event: any) {
     if (event.source !== this.iframe.contentWindow) return
 

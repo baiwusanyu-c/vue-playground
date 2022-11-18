@@ -24,6 +24,7 @@ export function compileModulesForPreview(store: Store, isSSR = false) {
   if (!isSSR) {
     // also add css files that are not imported
     for (const filename in store.state.files) {
+      // 有新的 css 文件的话就把 css 添加到编译结果中
       if (filename.endsWith('.css')) {
         const file = store.state.files[filename]
         if (!seen.has(file)) {
@@ -51,31 +52,38 @@ function processFile(
   seen: Set<File>,
   isSSR: boolean
 ) {
+  // 编译过的虚拟文件直接返回不再处理
   if (seen.has(file)) {
     return []
   }
+  // 缓存编译的虚拟文件表
   seen.add(file)
-
+  // 编译 html
   if (!isSSR && file.filename.endsWith('.html')) {
     return processHtmlFile(store, file.code, file.filename, processed, seen)
   }
-
+  console.log(file.compiled.js)
+  // 编译 js 模块 (file.compiled.js 在 transform.ts 中已经被vue编译了)
+  // 这里只要是将其模块化
   let [js, importedFiles] = processModule(
     store,
     isSSR ? file.compiled.ssr : file.compiled.js,
     file.filename
   )
   // append css
+  // 编译当前文件中的 css
   if (!isSSR && file.compiled.css) {
     js += `\nwindow.__css__ += ${JSON.stringify(file.compiled.css)}`
   }
   // crawl child imports
+  // js 中有引用模块 递归编译
   if (importedFiles.size) {
     for (const imported of importedFiles) {
       processFile(store, store.state.files[imported], processed, seen, isSSR)
     }
   }
-  // push self
+  console.log(js)
+  // 编译结果添加
   processed.push(js)
 }
 
@@ -278,6 +286,7 @@ const scriptRE = /<script\b(?:\s[^>]*>|>)([^]*?)<\/script>/gi
 const scriptModuleRE =
   /<script\b[^>]*type\s*=\s*(?:"module"|'module')[^>]*>([^]*?)<\/script>/gi
 
+// 这里主要是提取 script 标签内容然后递归的分析js和依赖
 function processHtmlFile(
   store: Store,
   src: string,
@@ -302,6 +311,7 @@ function processHtmlFile(
       jsCode += '\n' + content
       return ''
     })
+  console.log(html)
   processed.push(`document.body.innerHTML = ${JSON.stringify(html)}`)
   processed.push(...deps)
   processed.push(jsCode)
